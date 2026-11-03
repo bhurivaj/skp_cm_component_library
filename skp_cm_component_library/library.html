@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SKP CM Component Library</title>
+  <link rel="stylesheet" href="library_base.css">
+  <link rel="stylesheet" href="library.css">
+</head>
+
+<body>
+  <div class="app">
+    <div class="bar">
+      <input id="search" class="search" type="search" placeholder="ค้นหา code หรือชื่อ…" autocomplete="off">
+      <button id="refresh" class="btn" title="โหลดรายการใหม่" aria-label="โหลดรายการใหม่">
+        <svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M15 9a6 6 0 1 1-1.8-4.3M15 3v3.5h-3.5"/></svg>
+      </button>
+    </div>
+
+    <div id="notices" class="notices" hidden>
+      <div id="outdated" class="notice warn" hidden>
+        <span id="outdated-text"></span>
+        <button id="update-btn" class="btn primary"
+          title="แทน component เวอร์ชันเก่าในไฟล์นี้ด้วยของใน library — ตัวที่แก้เองในไฟล์จะถูกแทนด้วย (undo ได้)">อัปเดตในงาน</button>
+      </div>
+      <div id="changes" class="notice" hidden>
+        <span id="changes-text"></span>
+        <button id="ack-btn" class="btn">รับทราบ</button>
+      </div>
+    </div>
+
+    <div id="body" class="body" hidden>
+      <nav id="cats" class="cats" aria-label="หมวด"></nav>
+      <div id="grid" class="grid"></div>
+    </div>
+
+    <div id="message" class="message">
+      <span id="message-text">กำลังโหลด…</span>
+      <button id="message-btn" class="btn primary" hidden></button>
+    </div>
+
+    <div class="foot">
+      <span id="updated"></span>
+      <span id="status"></span>
+    </div>
+  </div>
+
+  <script src="library.js"></script>
+</body>
+
+</html>
