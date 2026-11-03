@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.1] - 2026-11-03
+
+### Fixed
+- รายการ component (`index.json`) อาจค้าง cache ใน SketchUp ทำให้ทีมไม่เห็นของที่ Publish ใหม่ และ Publish เตือนผิดว่า "ยังอ่าน index.json แบบ public ไม่ได้" — อ่านแบบไม่ใช้ cache และ upload `index.json` พร้อม `Cache-Control: no-cache`
+
 ## [0.2.0] - 2026-11-03
 
 ### Added

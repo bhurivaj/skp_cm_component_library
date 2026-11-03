@@ -53,15 +53,20 @@ module SkpCm
         UI.start_timer(0, false) { step.call }
       end
 
+      # index.json must never be cached by clients, or the team keeps seeing the previous publish
+      def headers(blob, path)
+        h = { 'x-ms-blob-type' => 'BlockBlob', 'x-ms-version' => '2021-08-06', 'Content-Type' => content_type(path) }
+        h['x-ms-blob-cache-control'] = 'no-cache' if blob == 'library/index.json'
+        h
+      end
+
       # Never logs the SAS
       def http_put(blob, path, sas)
         return [0, BAD_SAS] unless sas =~ /\A\??[\w%=&.:+\-\/]+\z/
 
         uri = URI("#{CONTAINER_URL}/#{blob.split('/').map { |s| URI.encode_www_form_component(s).gsub('+', '%20') }.join('/')}?#{sas.sub(/\A\?/, '')}")
         request = Net::HTTP::Put.new(uri)
-        request['x-ms-blob-type'] = 'BlockBlob'
-        request['x-ms-version'] = '2021-08-06'
-        request['Content-Type'] = content_type(path)
+        headers(blob, path).each { |k, v| request[k] = v }
         request.body = File.binread(path)
         response = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 15, read_timeout: 120) do |http|
           http.request(request)

@@ -93,7 +93,7 @@ module SkpCm
         def with_previous(mode)
           return yield(nil) if mode == :all
 
-          Library.http_get("#{Library::LIBRARY_URL}/index.json") do |status, body, error|
+          Library.http_get(Library.index_url) do |status, body, error|
             guard do
               previous = begin
                 status == 200 ? Library.parse_index(body) : raise(Library::Error, error || "HTTP #{status}")
@@ -127,7 +127,7 @@ module SkpCm
             return UI.messagebox("Upload ไม่สำเร็จ — ทีมยังใช้รายการเดิม\n#{message}#{hint}")
           end
 
-          Library.http_get("#{Library::LIBRARY_URL}/index.json") do |code, body, _error|
+          Library.http_get(Library.index_url) do |code, body, _error|
             guard do
               live = code == 200 && body.include?(version)
               note = mode == :all ? "\nทุกตัวจะขึ้นป้าย \"อัปเดต\" ในเครื่องของทีม" : ''

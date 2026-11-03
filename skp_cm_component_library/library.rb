@@ -37,6 +37,12 @@ module SkpCm
           Dir.glob(File.join(root, '*')).select { |p| File.directory?(p) && !versions.include?(File.basename(p)) }
         end
 
+        # Query string defeats SketchUp's HTTP cache (Azure sends no Cache-Control, so an old index could stay
+        # cached for hours); Azure ignores unknown query parameters
+        def index_url
+          "#{LIBRARY_URL}/index.json?t=#{Time.now.to_i}"
+        end
+
         def file_path(root, item, kind = 'components', ext = 'skp')
           File.join(root, item['version'], kind, "#{item['file']}.#{ext}")
         end
@@ -52,7 +58,7 @@ module SkpCm
             self.index = cached
             done.call(cached, nil, false)
           end
-          http_get("#{LIBRARY_URL}/index.json") do |status, body, error|
+          http_get(index_url) do |status, body, error|
             fresh = nil
             begin
               fresh = parse_index(body) if status == 200

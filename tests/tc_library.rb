@@ -187,4 +187,10 @@ class TestLibrary < Minitest::Test
     L.define_singleton_method(:cache_root) { '/dev/null/nope' }
     assert_equal({}, L.seen_changes(INDEX))
   end
+
+  def test_index_request_bypasses_http_cache
+    L.load_index { |*| nil }
+    url = @gets.first[0]
+    assert_match(%r{\Ahttps://sketchup\.blob\.core\.windows\.net/component-library/library/index\.json\?t=\d+\z}, url)
+  end
 end

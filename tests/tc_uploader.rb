@@ -70,4 +70,10 @@ class TestUploader < Minitest::Test
     assert_equal 0, status
     refute_includes message, 'SECRET'
   end
+
+  def test_index_json_is_not_cacheable
+    assert_equal 'no-cache', U.headers('library/index.json', 'x/index.json')['x-ms-blob-cache-control']
+    refute U.headers('library/v1/components/A.skp', 'a.skp').key?('x-ms-blob-cache-control')
+    assert_equal 'BlockBlob', U.headers('library/v1/thumbs/A.png', 'A.png')['x-ms-blob-type']
+  end
 end
