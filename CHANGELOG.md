@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.0] - 2026-11-04
+
+### Changed
+- อัปเดตในงาน: Dynamic Component คงค่าที่ปรับไว้ใน Component Options (ช่องกรอก / dropdown เช่น Level, Width ของ VB-3019) แล้ว redraw ด้วยสูตรของเวอร์ชันใหม่ — ยัง undo ได้ขั้นเดียว; geometry ที่แก้เองด้วยมือยังถูกแทนเหมือนเดิม
+
 ## [0.2.1] - 2026-11-03
 
 ### Fixed

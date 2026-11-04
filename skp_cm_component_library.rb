@@ -6,7 +6,7 @@ require 'extensions.rb'
 module SkpCm
   module ComponentLibrary
     PLUGIN_NAME = 'SKP CM Component Library'
-    VERSION = '0.2.1'
+    VERSION = '0.3.0'
 
     file = __FILE__.dup
     file.force_encoding('UTF-8') if file.respond_to?(:force_encoding)

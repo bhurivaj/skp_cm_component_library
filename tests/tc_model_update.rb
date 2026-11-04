@@ -30,22 +30,41 @@ class TestModelUpdate < Minitest::Test
 
   # Minimal stand-ins for SketchUp definitions (swap only uses these calls)
   class FakeInstance
-    attr_accessor :definition
+    attr_accessor :definition, :dc
+
+    def initialize(dc = {})
+      @dc = dc
+    end
+
+    def set_attribute(dict, key, value)
+      raise "unexpected dict #{dict}" unless dict == 'dynamic_attributes'
+
+      @dc[key] = value
+    end
+
+    def attribute_dictionary(name)
+      name == 'dynamic_attributes' && !@dc.empty? ? @dc : nil
+    end
   end
 
   class FakeDef
-    attr_accessor :name
+    attr_accessor :name, :dc
     attr_reader :instances, :attrs
 
-    def initialize(name, version = nil, instances = 1)
+    def initialize(name, version = nil, instances = 1, dc: {}, instance_dc: {})
       @name = name
       @attrs = { 'version' => version }
-      @instances = Array.new(instances) { FakeInstance.new.tap { |i| i.definition = self } }
+      @dc = dc
+      @instances = Array.new(instances) { FakeInstance.new(instance_dc.dup).tap { |i| i.definition = self } }
       @valid = true
     end
 
     def entities
       []
+    end
+
+    def attribute_dictionary(name)
+      name == 'dynamic_attributes' && !@dc.empty? ? @dc : nil
     end
 
     def get_attribute(_dict, key)
@@ -127,5 +146,37 @@ class TestModelUpdate < Minitest::Test
     assert_equal 0, model.definitions.loads
     assert_equal ['BM-4218#1'], model.definitions.removed
     assert_equal current, copy.instances.first.definition
+  end
+
+  OLD_DC = { '_level_access' => 'TEXTBOX', '_width_access' => 'LIST', '_deg_access' => 'NONE', '_old_access' => 'TEXTBOX' }.freeze
+  NEW_DC = { '_level_access' => 'TEXTBOX', '_width_access' => 'TEXTBOX', '_deg_access' => 'NONE' }.freeze
+
+  def test_user_inputs_only_editable_keys_present_on_instance
+    inst = { 'level' => '70.8', 'width' => '72', 'deg' => '138', 'name' => 'x' }
+    assert_equal({ 'level' => '70.8', 'width' => '72' }, M.user_inputs(inst, OLD_DC))
+  end
+
+  def test_restorable_keeps_keys_still_editable_in_new_version
+    saved = { 'level' => '70.8', 'old' => '1' }
+    assert_equal({ 'level' => '70.8' }, M.restorable(saved, NEW_DC))
+  end
+
+  def test_swap_restores_component_options_and_redraws
+    old = FakeDef.new('VB-3019', 'v1', 2, dc: OLD_DC, instance_dc: { 'level' => '47.2', 'width' => '72', 'deg' => '9' })
+    fresh = FakeDef.new('VB-3019#1', nil, 0, dc: NEW_DC)
+    model = model_with([old], fresh)
+    insts = old.instances.dup
+    insts.each { |i| i.dc.replace('level' => 'reset', 'deg' => 'reset') } # what a swap would leave behind
+    insts[0].dc.replace('level' => '47.2', 'width' => '72', 'deg' => '9')
+    insts[1].dc.replace('level' => '23.6', 'width' => '72', 'deg' => '9')
+    redrawn = []
+    original = M.method(:dc_redraw)
+    M.define_singleton_method(:dc_redraw) { |inst| redrawn << inst; true }
+    M.swap(model, 'code' => 'VB-3019', 'version' => 'v2', 'old_names' => ['VB-3019'], 'path' => 'x')
+    assert_equal %w[47.2 23.6], insts.map { |i| i.dc['level'] }
+    assert_equal insts, redrawn
+    assert(insts.all? { |i| i.definition.attrs['version'] == 'v2' })
+  ensure
+    M.define_singleton_method(:dc_redraw, original) if original
   end
 end

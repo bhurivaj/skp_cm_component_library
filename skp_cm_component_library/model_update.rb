@@ -54,11 +54,58 @@ module SkpCm
         fresh = current && current.get_attribute(DICT, 'version') == update['version'] ? current : model.definitions.load(update['path'])
         olds.delete(fresh)
         nested = olds.flat_map { |d| nested_definitions(d) }.uniq - [fresh]
-        olds.each { |old| old.instances.each { |i| i.definition = fresh } }
+        saved = {}
+        olds.each do |old|
+          editable = dc_attributes(old)
+          old.instances.each do |i|
+            inputs = user_inputs(dc_attributes(i), editable)
+            saved[i] = inputs unless inputs.empty?
+          end
+        end
+        moved = olds.flat_map { |old| old.instances.to_a }
+        moved.each { |i| i.definition = fresh }
         olds.each { |old| model.definitions.remove(old) }
         remove_unused(model, nested)
         fresh.name = code unless fresh.name == code
         mark(fresh, code, update['version'])
+        restore_options(saved, dc_attributes(fresh), code, update['version'])
+      end
+
+      # Dynamic Components (update spec §5.5): put the user's Component Options back and let DC redraw
+      def restore_options(saved, new_definition_attrs, code, version)
+        saved.each do |instance, inputs|
+          values = restorable(inputs, new_definition_attrs)
+          next if values.empty?
+
+          values.each { |k, v| instance.set_attribute('dynamic_attributes', k, v) }
+          mark(instance.definition, code, version) if dc_redraw(instance) # redraw may make the definition unique
+        end
+      end
+
+      EDITABLE = %w[TEXTBOX LIST].freeze
+
+      # { key => value } of the instance's options the user can change (definition says _<key>_access TEXTBOX/LIST)
+      def user_inputs(instance_attrs, definition_attrs)
+        instance_attrs.select { |k, _| !k.to_s.start_with?('_') && EDITABLE.include?(definition_attrs["_#{k}_access"]) }
+      end
+
+      def restorable(saved, new_definition_attrs)
+        saved.select { |k, _| EDITABLE.include?(new_definition_attrs["_#{k}_access"]) }
+      end
+
+      def dc_attributes(entity)
+        dict = entity.attribute_dictionary('dynamic_attributes')
+        dict ? Hash[dict.to_a] : {}
+      end
+
+      # redraw (not redraw_with_undo) stays inside our operation, so the update is still one undo step.
+      # false when SketchUp's Dynamic Components extension is missing — plain components need no redraw
+      def dc_redraw(instance)
+        dc = defined?($dc_observers) && $dc_observers.respond_to?(:get_latest_class) ? $dc_observers.get_latest_class : nil
+        return false unless dc && dc.respond_to?(:redraw)
+
+        dc.redraw(instance, false)
+        true
       end
 
       # Every definition used inside definition (any depth)
